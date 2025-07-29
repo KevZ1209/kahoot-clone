@@ -40,19 +40,7 @@ export default function Home() {
   }, []);
 
   function joinGame() {
-    // socket.emit("join-game", roomCode, username);
-    socket.emit("create-game", [
-      {
-        question: "What is 2 + 2",
-        correctAnswer: "4",
-        incorrectAnswers: ["3", "2", "1"],
-      },
-      {
-        question: "Which is a song by Ariana Grande",
-        correctAnswer: "Bye",
-        incorrectAnswers: ["Hi", "That Girl is Mine", "Gang gang gang"],
-      },
-    ]);
+    socket.emit("join-game", roomCode, username);
   }
 
   return (
@@ -62,7 +50,7 @@ export default function Home() {
       <p>{roomCode}</p>
       <div className={isConnected ? "text-green-500" : "text-red-500"}>
         <p>Status: {isConnected ? "connected" : "disconnected"}</p>
-        <p>Transport: {transport}</p>
+        {/* <p>Transport: {transport}</p> */}
       </div>
       <br></br>
       <input

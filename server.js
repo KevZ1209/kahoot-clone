@@ -28,7 +28,17 @@ app.prepare().then(() => {
 
       // only join room if it's a room that exists
       if (roomCode in gamesStates) {
+        // create new player data and have player join that socketio room
         socket.join(roomCode)
+        console.log("Player joined room " + roomCode)
+        const newPlayerData = {
+          score: 0,
+          numCorrect: 0
+        }
+        gamesStates[roomCode][username] = newPlayerData
+        // broadcast to admin that player has joined
+        console.log("broadcasting player-joined")
+        socket.to(roomCode).emit("player-joined", username)
       }
       else {
         return
@@ -47,6 +57,9 @@ app.prepare().then(() => {
       while (roomCode in gamesStates) {
         roomCode = String(Math.floor(Math.random() * (10000)).padStart(4, '0'))
       }
+
+      // join socketio room
+      socket.join(roomCode)
 
       // add room to gamesStates
       gamesStates[roomCode] = parsedQuestionData

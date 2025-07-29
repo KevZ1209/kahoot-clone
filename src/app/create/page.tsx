@@ -13,6 +13,10 @@ export default function Home() {
   // "create" -> "waiting room" -> {"question", "player standings"} -> "podium"
   const [page, setPage] = useState("create");
 
+  const [roomCode, setRoomCode] = useState("");
+
+  const [playersList, setPlayersList] = useState<Array<string>>([]);
+
   useEffect(() => {
     if (socket.connected) {
       onConnect();
@@ -33,10 +37,17 @@ export default function Home() {
     }
 
     function onCreateGame(roomCode: string) {
-      console.log("The room code is " + roomCode);
+      setRoomCode(roomCode);
+      setPage("waiting room");
+    }
+
+    function onPlayerJoined(username: string) {
+      console.log(username + " joined the room!");
+      setPlayersList((prevPlayersList) => [...prevPlayersList, username]);
     }
 
     socket.on("game-created", onCreateGame);
+    socket.on("player-joined", onPlayerJoined);
 
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
@@ -47,33 +58,32 @@ export default function Home() {
     };
   }, []);
 
-  if (page === "create") {
-    return (
-      <div>
-        <div className={isConnected ? "text-green-500" : "text-red-500"}>
-          <p>Status: {isConnected ? "connected" : "disconnected"}</p>
-          <p>Transport: {transport}</p>
-        </div>
-
-        <textarea
-          placeholder="enter game data"
-          onChange={(e) => setGameData(e.target.value)}
-          value={gameData}
-        ></textarea>
-        <br></br>
-        <button onClick={() => socket.emit("create-game", gameData)}>
-          Create Game!
-        </button>
+  return page === "create" ? (
+    <div>
+      <div className={isConnected ? "text-green-500" : "text-red-500"}>
+        <p>Status: {isConnected ? "connected" : "disconnected"}</p>
+        {/* <p>Transport: {transport}</p> */}
       </div>
-    );
-  } else if (page === "waiting room") {
-    return (
-      <div>
-        <h1>Waiting for Players...</h1>
-        <h2>Game Code: </h2>
-      </div>
-    );
-  }
 
-  return <div>Error!</div>;
+      <textarea
+        placeholder="enter game data"
+        onChange={(e) => setGameData(e.target.value)}
+        value={gameData}
+      ></textarea>
+      <br></br>
+      <button onClick={() => socket.emit("create-game", gameData)}>
+        Create Game!
+      </button>
+    </div>
+  ) : page === "waiting room" ? (
+    <div>
+      <h1 className="text-3xl">Waiting for Players...</h1>
+      <h2 className="text-2xl">Join Code: {roomCode}</h2>
+      {playersList.map((username, index) => (
+        <div key={index}>{username}</div>
+      ))}
+    </div>
+  ) : (
+    <div>Error!</div>
+  );
 }
