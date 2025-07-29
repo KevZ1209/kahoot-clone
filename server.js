@@ -1,0 +1,71 @@
+import { createServer } from "node:http";
+import next from "next";
+import { Server } from "socket.io";
+
+const dev = process.env.NODE_ENV !== "production";
+const hostname = "localhost";
+const port = 3000;
+// when using middleware `hostname` and `port` must be provided below
+const app = next({ dev, hostname, port });
+const handler = app.getRequestHandler();
+
+let gamesStates = {
+
+}
+
+
+
+app.prepare().then(() => {
+  const httpServer = createServer(handler);
+
+  const io = new Server(httpServer);
+
+  // runs every time a client connects to the socket
+  io.on("connection", (socket) => {
+    console.log(socket.id)
+    socket.on("join-game", (roomCode, username) => {
+      console.log(roomCode, username)
+
+      // only join room if it's a room that exists
+      if (roomCode in gamesStates) {
+        socket.join(roomCode)
+      }
+      else {
+        return
+      }
+
+
+    })
+
+    // admin stuff
+    socket.on("create-game", (questionData) => {
+      let randomNumber = Math.floor(Math.random() * (10000));
+      let roomCode = String(randomNumber).padStart(4, '0');
+      while (roomCode in gamesStates) {
+        roomCode = String(Math.floor(Math.random() * (10000)).padStart(4, '0'))
+      }
+
+      // add room to gamesStates
+      gamesStates[roomCode] = questionData
+
+      console.log(gamesStates)
+
+    })
+
+    socket.on("start-game", (room) => {
+      // start game from current room
+      socket.to(room).emit("start-game")
+    })
+  });
+
+
+
+  httpServer
+    .once("error", (err) => {
+      console.error(err);
+      process.exit(1);
+    })
+    .listen(port, () => {
+      console.log(`> Ready on http://${hostname}:${port}`);
+    });
+});
