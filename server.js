@@ -39,6 +39,9 @@ app.prepare().then(() => {
 
     // admin stuff
     socket.on("create-game", (questionData) => {
+      const parsedQuestionData = JSON.parse(questionData)
+      // parse questionData to see if it parses
+
       let randomNumber = Math.floor(Math.random() * (10000));
       let roomCode = String(randomNumber).padStart(4, '0');
       while (roomCode in gamesStates) {
@@ -46,9 +49,10 @@ app.prepare().then(() => {
       }
 
       // add room to gamesStates
-      gamesStates[roomCode] = questionData
+      gamesStates[roomCode] = parsedQuestionData
 
       console.log(gamesStates)
+      socket.emit("game-created")
 
     })
 
