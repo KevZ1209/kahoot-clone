@@ -32,8 +32,8 @@ export default function Home() {
       setTransport("N/A");
     }
 
-    function onCreateGame() {
-      console.log();
+    function onCreateGame(roomCode: string) {
+      console.log("The room code is " + roomCode);
     }
 
     socket.on("game-created", onCreateGame);
@@ -47,22 +47,33 @@ export default function Home() {
     };
   }, []);
 
-  return (
-    <div>
-      <div className={isConnected ? "text-green-500" : "text-red-500"}>
-        <p>Status: {isConnected ? "connected" : "disconnected"}</p>
-        <p>Transport: {transport}</p>
-      </div>
+  if (page === "create") {
+    return (
+      <div>
+        <div className={isConnected ? "text-green-500" : "text-red-500"}>
+          <p>Status: {isConnected ? "connected" : "disconnected"}</p>
+          <p>Transport: {transport}</p>
+        </div>
 
-      <textarea
-        placeholder="enter game data"
-        onChange={(e) => setGameData(e.target.value)}
-        value={gameData}
-      ></textarea>
-      <br></br>
-      <button onClick={() => socket.emit("create-game", gameData)}>
-        Create Game!
-      </button>
-    </div>
-  );
+        <textarea
+          placeholder="enter game data"
+          onChange={(e) => setGameData(e.target.value)}
+          value={gameData}
+        ></textarea>
+        <br></br>
+        <button onClick={() => socket.emit("create-game", gameData)}>
+          Create Game!
+        </button>
+      </div>
+    );
+  } else if (page === "waiting room") {
+    return (
+      <div>
+        <h1>Waiting for Players...</h1>
+        <h2>Game Code: </h2>
+      </div>
+    );
+  }
+
+  return <div>Error!</div>;
 }

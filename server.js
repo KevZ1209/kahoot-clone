@@ -52,7 +52,7 @@ app.prepare().then(() => {
       gamesStates[roomCode] = parsedQuestionData
 
       console.log(gamesStates)
-      socket.emit("game-created")
+      socket.emit("game-created", roomCode)
 
     })
 
