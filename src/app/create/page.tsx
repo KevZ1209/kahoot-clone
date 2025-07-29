@@ -46,6 +46,10 @@ export default function Home() {
       setPlayersList((prevPlayersList) => [...prevPlayersList, username]);
     }
 
+    function onStartGame() {
+      setPage("game loop");
+    }
+
     socket.on("game-created", onCreateGame);
     socket.on("player-joined", onPlayerJoined);
 
@@ -62,7 +66,7 @@ export default function Home() {
     <div>
       <div className={isConnected ? "text-green-500" : "text-red-500"}>
         <p>Status: {isConnected ? "connected" : "disconnected"}</p>
-        {/* <p>Transport: {transport}</p> */}
+        <p>Transport: {transport}</p>
       </div>
 
       <textarea
@@ -82,6 +86,7 @@ export default function Home() {
       {playersList.map((username, index) => (
         <div key={index}>{username}</div>
       ))}
+      <button className="border-2">Start Game!</button>
     </div>
   ) : (
     <div>Error!</div>

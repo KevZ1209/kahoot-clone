@@ -23,11 +23,21 @@ app.prepare().then(() => {
   // runs every time a client connects to the socket
   io.on("connection", (socket) => {
     console.log(socket.id)
+
+    // after user types game code and enters valid username
     socket.on("join-game", (roomCode, username) => {
       console.log(roomCode, username)
 
       // only join room if it's a room that exists
       if (roomCode in gamesStates) {
+        // check if username is taken
+        if (username in gamesStates[roomCode]) {
+          // if username is taken, kick user back to home page
+          console.log("Duplicate username error!")
+          socket.emit("player-joined-failed", true)
+          return
+        }
+
         // create new player data and have player join that socketio room
         socket.join(roomCode)
         console.log("Player joined room " + roomCode)
@@ -38,13 +48,13 @@ app.prepare().then(() => {
         gamesStates[roomCode][username] = newPlayerData
         // broadcast to admin that player has joined
         console.log("broadcasting player-joined")
-        socket.to(roomCode).emit("player-joined", username)
+        io.to(roomCode).emit("player-joined", username)
       }
       else {
+        console.log("Room code incorrect!")
+        socket.emit("player-joined-failed", false)
         return
       }
-
-
     })
 
     // admin stuff
@@ -69,12 +79,15 @@ app.prepare().then(() => {
 
     })
 
+    socket.on("player-left", (username) => {
+
+    })
+
     socket.on("start-game", (room) => {
       // start game from current room
-      socket.to(room).emit("start-game")
+      socket.to(room).emit("next-countdown")
     })
   });
-
 
 
   httpServer
