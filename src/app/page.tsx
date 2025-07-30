@@ -28,7 +28,7 @@ export default function Home() {
     }
 
     function onDisconnect() {
-      socket.emit("player-left", username.trim());
+      // TODO: handle client disconnects
       setIsConnected(false);
       setTransport("N/A");
     }

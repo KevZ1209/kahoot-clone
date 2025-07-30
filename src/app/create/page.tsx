@@ -50,8 +50,15 @@ export default function Home() {
       setPage("game loop");
     }
 
+    function onPlayerLeft(username: string) {
+      setPlayersList((prevPlayersList) =>
+        prevPlayersList.filter((player) => player !== username)
+      );
+    }
+
     socket.on("game-created", onCreateGame);
     socket.on("player-joined", onPlayerJoined);
+    socket.on("player-left", onPlayerLeft);
 
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);

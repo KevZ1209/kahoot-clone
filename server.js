@@ -79,10 +79,6 @@ app.prepare().then(() => {
 
     })
 
-    socket.on("player-left", (username) => {
-
-    })
-
     socket.on("start-game", (room) => {
       // start game from current room
       socket.to(room).emit("next-countdown")
