@@ -3,6 +3,20 @@
 import { useEffect, useState } from "react";
 import { socket } from "../socket";
 
+interface QuestionData {
+  question: string;
+  correctAnswer: string;
+  incorrectAnswers: string[];
+}
+
+function shuffleArray(array: number[]) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1)); // Pick a random index from 0 to i
+    [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+  }
+  return array;
+}
+
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
@@ -12,6 +26,14 @@ export default function Home() {
 
   // "join" -> "waiting room" -> repeat("countdown, question, standings") -> "podium"
   const [page, setPage] = useState("join");
+
+  const [countdown, setCountdown] = useState(0);
+
+  const [currChoice, setCurrChoice] = useState();
+
+  const [currAnswerChoices, setCurrAnswerChoices] = useState<Array<string>>([]);
+
+  const [answerOrder, setAnswerOrder] = useState<Array<number>>([]);
 
   useEffect(() => {
     if (socket.connected) {
@@ -45,13 +67,28 @@ export default function Home() {
       setPage("waiting room");
     }
 
-    function onCountdown() {
+    function onCountdown(count: number) {
       setPage("countdown");
+      setCountdown(count);
+    }
+
+    function onQuestion(curr_question_data: QuestionData) {
+      // only show answer choices
+      const correctAnswer = curr_question_data["correctAnswer"];
+      const incorrectAnswers = curr_question_data["incorrectAnswers"];
+
+      // correct answer is always choice A
+      setCurrAnswerChoices([correctAnswer, ...incorrectAnswers]);
+
+      setAnswerOrder(shuffleArray([0, 1, 2, 3]));
+
+      setPage("question");
     }
 
     socket.on("player-joined-failed", onPlayerJoinedFailed);
     socket.on("player-joined", onPlayerJoined);
-    socket.on("next-countdown", onCountdown);
+    socket.on("countdown", onCountdown);
+    socket.on("question", onQuestion);
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
@@ -92,14 +129,25 @@ export default function Home() {
   ) : page === "waiting room" ? (
     <div>You have joined the game! Please wait for the game to start!</div>
   ) : page === "countdown" ? (
-    <div>...Counting down...</div>
+    <div>...{countdown}...</div>
   ) : page === "question" ? (
     <div>
-      <h1>Question: ...</h1>
-      <button>Answer 1</button>
-      <button>Answer 2</button>
-      <button>Answer 3</button>
-      <button>Answer 4</button>
+      {answerOrder.map((answerChoice) => (
+        <button
+          key={answerChoice}
+          onClick={() => {
+            // emits "player-answer" with room code, username, and whether the answer was correct or not
+            socket.emit(
+              "player-answer",
+              roomCode,
+              username.trim(),
+              answerChoice === 0
+            );
+          }}
+        >
+          {currAnswerChoices[answerChoice]}
+        </button>
+      ))}
     </div>
   ) : (
     <div>Error!</div>

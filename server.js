@@ -13,6 +13,9 @@ let gamesStates = {
 
 }
 
+let countdown1_interval;
+
+let countdown2_interval;
 
 
 app.prepare().then(() => {
@@ -72,7 +75,7 @@ app.prepare().then(() => {
       // join socketio room
       socket.join(roomCode)
 
-      gamesStates[roomCode] = { "players": {}, "questions": null }
+      gamesStates[roomCode] = { "players": {}, "questions": null, "question_number": 0 }
 
       // add room to gamesStates
       gamesStates[roomCode]["questions"] = parsedQuestionData
@@ -82,22 +85,51 @@ app.prepare().then(() => {
 
     })
 
-    socket.on("start-game", (room) => {
-      // // start game from current room
-      // let curr_question = 0;
-      // let countdown_seconds = 3
-      // const intervalId = setInterval(() => {
-      //   if (countdown_seconds > 0) {
-      //     io.to(room).emit("countdown", count);
-      //     countdown_seconds--;
-      //   } else {
-      //     clearInterval(intervalId);
-      //     io.to(room).emit("question", gamesStates)
-      //   }
-      // })
+    socket.on("next-question", (room) => {
+      let countdown_seconds = 3
+      countdown1_interval = setInterval(() => {
+        if (countdown_seconds > 0) {
+          io.to(room).emit("countdown", countdown_seconds);
+          countdown_seconds--;
+        } else {
+          clearInterval(countdown1_interval);
+          const curr_question_num = gamesStates[room]["question_number"]
+          const curr_question_data = gamesStates[room]["questions"][curr_question_num]
 
+          // TODO: obfuscate so the correct answer doesn't show in the HTML
+          io.to(room).emit("question", curr_question_data)
+
+          let countdown2_seconds = 20;
+          countdown2_interval = setInterval(() => {
+            if (countdown2_seconds > 0) {
+              io.to(room).emit("question-countdown", countdown2_seconds)
+              countdown2_seconds--;
+            }
+            else {
+              clearInterval(countdown2_interval);
+              io.to(room).emit("player standings")
+              gamesStates[room]["question_number"] += 1
+            }
+
+          }, 1000)
+        }
+      }, 1000)
+    })
+
+    socket.on("player-answer", (roomCode, username, correct) => {
+      if (correct) {
+        console.log(username + " got it correct!")
+        gamesStates[roomCode]["players"][username]["score"] += 1000;
+        gamesStates[roomCode]["players"][username]["numCorrect"] += 1;
+      }
+      else {
+        console.log(username + " got it wrong!")
+      }
+      console.log(gamesStates);
     })
   });
+
+
 
 
   httpServer

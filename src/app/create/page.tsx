@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { socket } from "../../socket";
 
+interface QuestionData {
+  question: string;
+  correctAnswer: string;
+  incorrectAnswers: string[];
+}
+
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
@@ -16,6 +22,10 @@ export default function Home() {
   const [roomCode, setRoomCode] = useState("");
 
   const [playersList, setPlayersList] = useState<Array<string>>([]);
+
+  const [countdown, setCountdown] = useState(0);
+
+  const [currQuestion, setCurrQuestion] = useState("");
 
   useEffect(() => {
     if (socket.connected) {
@@ -56,9 +66,21 @@ export default function Home() {
       );
     }
 
+    function onCountdown(count: number) {
+      setPage("countdown");
+      setCountdown(count);
+    }
+
+    function onQuestion(curr_question_data: QuestionData) {
+      setCurrQuestion(curr_question_data["question"]);
+      setPage("question");
+    }
+
     socket.on("game-created", onCreateGame);
     socket.on("player-joined", onPlayerJoined);
     socket.on("player-left", onPlayerLeft);
+    socket.on("countdown", onCountdown);
+    socket.on("question", onQuestion);
 
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
@@ -93,10 +115,22 @@ export default function Home() {
       {playersList.map((username, index) => (
         <div key={index}>{username}</div>
       ))}
-      <button className="border-2" onClick={() => socket.emit("start-game")}>
+      <button
+        className="border-2"
+        onClick={() => socket.emit("next-question", roomCode)}
+      >
         Start Game!
       </button>
     </div>
+  ) : page === "countdown" ? (
+    <div>...{countdown}...</div>
+  ) : page === "question" ? (
+    <div>
+      <h1>The question is...</h1>
+      <h2>{currQuestion}</h2>
+    </div>
+  ) : page === "player standings" ? (
+    <div>Player Standings...</div>
   ) : (
     <div>Error!</div>
   );
