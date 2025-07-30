@@ -31,7 +31,7 @@ app.prepare().then(() => {
       // only join room if it's a room that exists
       if (roomCode in gamesStates) {
         // check if username is taken
-        if (username in gamesStates[roomCode]) {
+        if (username in gamesStates[roomCode]["players"]) {
           // if username is taken, kick user back to home page
           console.log("Duplicate username error!")
           socket.emit("player-joined-failed", true)
@@ -45,10 +45,11 @@ app.prepare().then(() => {
           score: 0,
           numCorrect: 0
         }
-        gamesStates[roomCode][username] = newPlayerData
+        gamesStates[roomCode]["players"][username] = newPlayerData
         // broadcast to admin that player has joined
         console.log("broadcasting player-joined")
         io.to(roomCode).emit("player-joined", username)
+        console.log(gamesStates)
       }
       else {
         console.log("Room code incorrect!")
@@ -71,8 +72,10 @@ app.prepare().then(() => {
       // join socketio room
       socket.join(roomCode)
 
+      gamesStates[roomCode] = { "players": {}, "questions": null }
+
       // add room to gamesStates
-      gamesStates[roomCode] = parsedQuestionData
+      gamesStates[roomCode]["questions"] = parsedQuestionData
 
       console.log(gamesStates)
       socket.emit("game-created", roomCode)
@@ -80,8 +83,19 @@ app.prepare().then(() => {
     })
 
     socket.on("start-game", (room) => {
-      // start game from current room
-      socket.to(room).emit("next-countdown")
+      // // start game from current room
+      // let curr_question = 0;
+      // let countdown_seconds = 3
+      // const intervalId = setInterval(() => {
+      //   if (countdown_seconds > 0) {
+      //     io.to(room).emit("countdown", count);
+      //     countdown_seconds--;
+      //   } else {
+      //     clearInterval(intervalId);
+      //     io.to(room).emit("question", gamesStates)
+      //   }
+      // })
+
     })
   });
 

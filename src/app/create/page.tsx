@@ -93,7 +93,9 @@ export default function Home() {
       {playersList.map((username, index) => (
         <div key={index}>{username}</div>
       ))}
-      <button className="border-2">Start Game!</button>
+      <button className="border-2" onClick={() => socket.emit("start-game")}>
+        Start Game!
+      </button>
     </div>
   ) : (
     <div>Error!</div>

@@ -10,7 +10,7 @@ export default function Home() {
   const [roomCode, setRoomCode] = useState("");
   const [username, setUsername] = useState("");
 
-  // "join" -> "game loop" ("countdown, question, standings") -> "podium"
+  // "join" -> "waiting room" -> repeat("countdown, question, standings") -> "podium"
   const [page, setPage] = useState("join");
 
   useEffect(() => {
@@ -42,11 +42,16 @@ export default function Home() {
     }
 
     function onPlayerJoined() {
-      setPage("game loop");
+      setPage("waiting room");
     }
+
+    function onCountdown() {
+      setPage("countdown");
+    }
+
     socket.on("player-joined-failed", onPlayerJoinedFailed);
     socket.on("player-joined", onPlayerJoined);
-
+    socket.on("next-countdown", onCountdown);
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
@@ -84,8 +89,18 @@ export default function Home() {
       ></input>
       <button onClick={joinGame}>Join Game!</button>
     </div>
-  ) : page === "game loop" ? (
+  ) : page === "waiting room" ? (
     <div>You have joined the game! Please wait for the game to start!</div>
+  ) : page === "countdown" ? (
+    <div>...Counting down...</div>
+  ) : page === "question" ? (
+    <div>
+      <h1>Question: ...</h1>
+      <button>Answer 1</button>
+      <button>Answer 2</button>
+      <button>Answer 3</button>
+      <button>Answer 4</button>
+    </div>
   ) : (
     <div>Error!</div>
   );
