@@ -167,6 +167,13 @@ export default function Home() {
       <p>{topTenNames}</p>
       <p>{topTenScores}</p>
     </div>
+  ) : page === "end page" ? (
+    <div>
+      <h1>Top 3: </h1>
+      <h2>3rd Place: {topTenNames.length >= 3 && topTenNames[2]}</h2>
+      <h2>2nd Place: {topTenNames.length >= 2 && topTenNames[1]}</h2>
+      <h2>1st Place: {topTenNames.length >= 1 && topTenNames[0]}</h2>
+    </div>
   ) : (
     <div>Error!</div>
   );

@@ -34,6 +34,7 @@ export default function Home() {
 
   const [roomCode, setRoomCode] = useState("");
   const [username, setUsername] = useState("");
+  const [statusText, setStatusText] = useState("");
 
   // "join" -> "waiting room" -> repeat("countdown, question, player standings") -> "podium"
   const [page, setPage] = useState("join");
@@ -67,14 +68,10 @@ export default function Home() {
 
     function onPlayerJoinedFailed(usernameMismatch: boolean) {
       if (usernameMismatch) {
-        alert("That username has been taken already!");
+        setStatusText("That username has been taken already!");
       } else {
-        alert("Room code is incorrect");
+        setStatusText("Room code is incorrect");
       }
-    }
-
-    function onPlayerJoined() {
-      setPage("waiting room");
     }
 
     function onCountdown(count: number) {
@@ -105,7 +102,6 @@ export default function Home() {
     }
 
     socket.on("player-joined-failed", onPlayerJoinedFailed);
-    socket.on("player-joined", onPlayerJoined);
     socket.on("countdown", onCountdown);
     socket.on("question", onQuestion);
     socket.on("player-answered", () => setPage("waiting"));
@@ -123,6 +119,7 @@ export default function Home() {
 
   function joinGame() {
     socket.emit("join-game", roomCode, username.trim());
+    setPage("waiting room");
   }
 
   return page === "join" ? (
@@ -146,6 +143,7 @@ export default function Home() {
         onChange={(e) => setUsername(e.target.value)}
         value={username}
       ></input>
+      <div>{statusText}</div>
       <button onClick={joinGame}>Join Game!</button>
     </div>
   ) : page === "waiting room" ? (
