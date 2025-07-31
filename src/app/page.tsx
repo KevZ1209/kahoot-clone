@@ -106,6 +106,7 @@ export default function Home() {
     socket.on("question", onQuestion);
     socket.on("player-answered", () => setPage("waiting"));
     socket.on("show-standings", onShowStandings);
+    socket.on("show-end-page", () => setPage("end page"));
 
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
@@ -176,6 +177,11 @@ export default function Home() {
     </div>
   ) : page === "waiting" ? (
     <div>Waiting...</div>
+  ) : page === "end page" ? (
+    <div>
+      <h1>Your ranking is: #{currRanking}</h1>
+      <h2>With a score of {currScore}</h2>
+    </div>
   ) : (
     <div>Error!</div>
   );

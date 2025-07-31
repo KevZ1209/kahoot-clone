@@ -9,6 +9,9 @@ const port = 3000;
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
+const QUESTION_TIME = 3
+const POINTS_POSSIBLE = 1000
+
 let gamesStates = {
 
 }
@@ -19,6 +22,14 @@ function shuffleArray(array) {
     [array[i], array[j]] = [array[j], array[i]]; // Swap elements
   }
   return array;
+}
+
+function calculateScore(elapsed_milliseconds) {
+  const elapsed_seconds = elapsed_milliseconds / 1000
+  if (elapsed_milliseconds <= 500) {
+    return POINTS_POSSIBLE
+  }
+  return Math.round((1 - (elapsed_seconds / QUESTION_TIME) / 2) * POINTS_POSSIBLE)
 }
 
 let countdown1_interval;
@@ -94,6 +105,10 @@ app.prepare().then(() => {
     })
 
     socket.on("next-question", (room) => {
+      if (gamesStates[room]["question_number"] >= gamesStates[room]["questions"].length) {
+        io.to(room).emit("show-end-page")
+        return
+      }
       gamesStates[room]["answer_distribution"] = {
         "A": 0,
         "B": 0,
@@ -129,7 +144,9 @@ app.prepare().then(() => {
 
           io.to(room).emit("question", question_data)
 
-          let countdown2_seconds = 20;
+          gamesStates[room]["curr_question_start_time"] = Date.now()
+
+          let countdown2_seconds = QUESTION_TIME;
           countdown2_interval = setInterval(() => {
             if (countdown2_seconds > 0) {
               io.to(room).emit("question-countdown", countdown2_seconds)
@@ -170,7 +187,7 @@ app.prepare().then(() => {
       gamesStates[roomCode]["answer_distribution"][choice] += 1
       if (choice === gamesStates[roomCode]["correct_answer_letter"]) {
         console.log(username + " got it correct!")
-        gamesStates[roomCode]["players"][username]["score"] += 1000;
+        gamesStates[roomCode]["players"][username]["score"] += calculateScore(Date.now() - gamesStates[roomCode]["curr_question_start_time"]);
         gamesStates[roomCode]["players"][username]["numCorrect"] += 1;
       }
       else {

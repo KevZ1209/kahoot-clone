@@ -105,6 +105,7 @@ export default function Home() {
     socket.on("countdown", onCountdown);
     socket.on("question", onQuestion);
     socket.on("show-standings", onShowStandings);
+    socket.on("show-end-page", () => setPage("end page"));
 
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
@@ -166,13 +167,14 @@ export default function Home() {
       <p>{JSON.stringify(answerDistributionData)}</p>
       <p>{topTenNames}</p>
       <p>{topTenScores}</p>
+      <button onClick={onStartClicked}>Next!</button>
     </div>
   ) : page === "end page" ? (
     <div>
       <h1>Top 3: </h1>
-      <h2>3rd Place: {topTenNames.length >= 3 && topTenNames[2]}</h2>
-      <h2>2nd Place: {topTenNames.length >= 2 && topTenNames[1]}</h2>
       <h2>1st Place: {topTenNames.length >= 1 && topTenNames[0]}</h2>
+      <h2>2nd Place: {topTenNames.length >= 2 && topTenNames[1]}</h2>
+      <h2>3rd Place: {topTenNames.length >= 3 && topTenNames[2]}</h2>
     </div>
   ) : (
     <div>Error!</div>
