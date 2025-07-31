@@ -11,6 +11,13 @@ interface QuestionData {
   D: string;
 }
 
+interface AnswerDistribution {
+  A: number;
+  B: number;
+  C: number;
+  D: number;
+}
+
 const ANSWER_CHOICES = ["A", "B", "C", "D"];
 
 function shuffleArray(array: number[]) {
@@ -34,6 +41,9 @@ export default function Home() {
   const [countdown, setCountdown] = useState(0);
 
   const [currAnswerChoices, setCurrAnswerChoices] = useState<Array<string>>([]);
+
+  const [currRanking, setCurrRanking] = useState(0);
+  const [currScore, setCurrScore] = useState(0);
 
   useEffect(() => {
     if (socket.connected) {
@@ -83,11 +93,24 @@ export default function Home() {
       setPage("question");
     }
 
+    function onShowStandings(
+      answerDistribution: AnswerDistribution,
+      sortedNames: string[],
+      sortedScores: number[]
+    ) {
+      const player_index = sortedNames.indexOf(username);
+      setCurrRanking(player_index + 1);
+      setCurrScore(sortedScores[player_index]);
+      setPage("player standings");
+    }
+
     socket.on("player-joined-failed", onPlayerJoinedFailed);
     socket.on("player-joined", onPlayerJoined);
     socket.on("countdown", onCountdown);
     socket.on("question", onQuestion);
     socket.on("player-answered", () => setPage("waiting"));
+    socket.on("show-standings", onShowStandings);
+
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
@@ -96,7 +119,7 @@ export default function Home() {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
     };
-  }, []);
+  }, [username]);
 
   function joinGame() {
     socket.emit("join-game", roomCode, username.trim());
@@ -150,7 +173,8 @@ export default function Home() {
     </div>
   ) : page === "player standings" ? (
     <div>
-      <h1>Your ranking is: 69</h1>
+      <h1>Your ranking is: #{currRanking}</h1>
+      <h2>With a score of {currScore}</h2>
     </div>
   ) : page === "waiting" ? (
     <div>Waiting...</div>

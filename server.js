@@ -94,6 +94,12 @@ app.prepare().then(() => {
     })
 
     socket.on("next-question", (room) => {
+      gamesStates[room]["answer_distribution"] = {
+        "A": 0,
+        "B": 0,
+        "C": 0,
+        "D": 0
+      }
       let countdown_seconds = 3
       countdown1_interval = setInterval(() => {
         if (countdown_seconds > 0) {
@@ -103,8 +109,6 @@ app.prepare().then(() => {
           clearInterval(countdown1_interval);
           const curr_question_num = gamesStates[room]["question_number"]
           const curr_question_data = gamesStates[room]["questions"][curr_question_num]
-
-          // TODO: obfuscate so the correct answer doesn't show in the HTML
 
           // send over something in the format:
           // { A: "Answer 1", B: "Answer 2", C: "Answer 3", D: "Answer 4"}
@@ -133,7 +137,26 @@ app.prepare().then(() => {
             }
             else {
               clearInterval(countdown2_interval);
-              io.to(room).emit("player standings")
+
+              // 1. Convert the object into an array of player objects
+              // Each player object will have 'name', 'score', and 'numCorrect' properties
+              const curr_players_info = gamesStates[room]["players"]
+              const players = Object.entries(curr_players_info).map(([name, data]) => ({
+                name: name,
+                score: data.score,
+                numCorrect: data.numCorrect // Include numCorrect, even if not used for sorting
+              }));
+
+              // 2. Sort the players array by score in decreasing order
+              players.sort((a, b) => b.score - a.score);
+
+              // 3. Create the array of names sorted by score
+              const sortedNames = players.map(player => player.name);
+
+              // 4. Create the array of scores sorted in increasing order
+              const sortedScores = players.map(player => player.score);
+
+              io.to(room).emit("show-standings", gamesStates[room]["answer_distribution"], sortedNames, sortedScores)
               gamesStates[room]["question_number"] += 1
             }
 
@@ -144,6 +167,7 @@ app.prepare().then(() => {
 
     socket.on("player-answer", (roomCode, username, choice) => {
       socket.emit("player-answered")
+      gamesStates[roomCode]["answer_distribution"][choice] += 1
       if (choice === gamesStates[roomCode]["correct_answer_letter"]) {
         console.log(username + " got it correct!")
         gamesStates[roomCode]["players"][username]["score"] += 1000;
@@ -155,8 +179,6 @@ app.prepare().then(() => {
       console.log(gamesStates);
     })
   });
-
-
 
 
   httpServer

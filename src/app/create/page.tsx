@@ -11,9 +11,17 @@ interface QuestionData {
   D: string;
 }
 
+interface AnswerDistribution {
+  A: number;
+  B: number;
+  C: number;
+  D: number;
+}
+
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
+  const [gameStarted, setGameStarted] = useState(false);
 
   // example: [{"question":"What is 2 + 2","correctAnswer":"4","incorrectAnswers":["3","2","1"]},{"question":"Which is a song by Ariana Grande","correctAnswer":"Bye","incorrectAnswers":["Hi","gang gang","integem"]}]
   const [gameData, setGameData] = useState("");
@@ -28,6 +36,12 @@ export default function Home() {
   const [countdown, setCountdown] = useState(0);
 
   const [currQuestion, setCurrQuestion] = useState("");
+
+  const [answerDistributionData, setAnswerDistributionData] = useState({});
+
+  const [topTenNames, setTopTenNames] = useState<Array<string>>([]);
+
+  const [topTenScores, setTopTenScores] = useState<Array<number>>([]);
 
   useEffect(() => {
     if (socket.connected) {
@@ -58,10 +72,6 @@ export default function Home() {
       setPlayersList((prevPlayersList) => [...prevPlayersList, username]);
     }
 
-    function onStartGame() {
-      setPage("game loop");
-    }
-
     function onPlayerLeft(username: string) {
       setPlayersList((prevPlayersList) =>
         prevPlayersList.filter((player) => player !== username)
@@ -78,11 +88,23 @@ export default function Home() {
       setPage("question");
     }
 
+    function onShowStandings(
+      answerDistribution: AnswerDistribution,
+      sortedNames: string[],
+      sortedScores: number[]
+    ) {
+      setAnswerDistributionData(answerDistribution);
+      setTopTenNames(sortedNames.slice(0, 10));
+      setTopTenScores(sortedScores.slice(0, 10));
+      setPage("player standings");
+    }
+
     socket.on("game-created", onCreateGame);
     socket.on("player-joined", onPlayerJoined);
     socket.on("player-left", onPlayerLeft);
     socket.on("countdown", onCountdown);
     socket.on("question", onQuestion);
+    socket.on("show-standings", onShowStandings);
 
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
@@ -92,6 +114,11 @@ export default function Home() {
       socket.off("disconnect", onDisconnect);
     };
   }, []);
+
+  function onStartClicked() {
+    setGameStarted(true);
+    socket.emit("next-question", roomCode);
+  }
 
   return page === "create" ? (
     <div>
@@ -117,12 +144,14 @@ export default function Home() {
       {playersList.map((username, index) => (
         <div key={index}>{username}</div>
       ))}
-      <button
-        className="border-2"
-        onClick={() => socket.emit("next-question", roomCode)}
-      >
-        Start Game!
-      </button>
+
+      {gameStarted === false ? (
+        <button className="border-2" onClick={onStartClicked}>
+          Start Game!
+        </button>
+      ) : (
+        <div>...Starting game...</div>
+      )}
     </div>
   ) : page === "countdown" ? (
     <div>...{countdown}...</div>
@@ -132,7 +161,12 @@ export default function Home() {
       <h2>{currQuestion}</h2>
     </div>
   ) : page === "player standings" ? (
-    <div>Player Standings...</div>
+    <div>
+      <h1>Player Standings...</h1>
+      <p>{JSON.stringify(answerDistributionData)}</p>
+      <p>{topTenNames}</p>
+      <p>{topTenScores}</p>
+    </div>
   ) : (
     <div>Error!</div>
   );
