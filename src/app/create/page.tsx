@@ -22,6 +22,7 @@ export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
   const [gameStarted, setGameStarted] = useState(false);
+  const [loadingNextQuestion, setLoadingNextQuestion] = useState(false);
 
   // example: [{"question":"What is 2 + 2","correctAnswer":"4","incorrectAnswers":["3","2","1"]},{"question":"Which is a song by Ariana Grande","correctAnswer":"Bye","incorrectAnswers":["Hi","gang gang","integem"]}]
   const [gameData, setGameData] = useState("");
@@ -35,6 +36,8 @@ export default function Home() {
 
   const [countdown, setCountdown] = useState(0);
 
+  const [questionCountdown, setQuestionCountdown] = useState(0);
+
   const [currQuestion, setCurrQuestion] = useState("");
 
   const [answerDistributionData, setAnswerDistributionData] = useState({});
@@ -42,6 +45,11 @@ export default function Home() {
   const [topTenNames, setTopTenNames] = useState<Array<string>>([]);
 
   const [topTenScores, setTopTenScores] = useState<Array<number>>([]);
+
+  const [originalQuestion, setOriginalQuestion] = useState("");
+  const [correctAnswer, setCorrectAnswer] = useState("");
+
+  const [progress, setProgress] = useState("");
 
   useEffect(() => {
     if (socket.connected) {
@@ -83,19 +91,32 @@ export default function Home() {
       setCountdown(count);
     }
 
-    function onQuestion(curr_question_data: QuestionData) {
+    function onQuestion(
+      curr_question_data: QuestionData,
+      currNumQuestion: number,
+      totalNumQuestions: number
+    ) {
+      setLoadingNextQuestion(false);
       setCurrQuestion(curr_question_data["question"]);
+      setProgress(
+        "Question " + (currNumQuestion + 1) + " out of " + totalNumQuestions
+      );
       setPage("question");
     }
 
     function onShowStandings(
       answerDistribution: AnswerDistribution,
       sortedNames: string[],
-      sortedScores: number[]
+      sortedScores: number[],
+      correctLetter: string,
+      correctAnswer: string,
+      originalQuestion: string
     ) {
       setAnswerDistributionData(answerDistribution);
       setTopTenNames(sortedNames.slice(0, 10));
       setTopTenScores(sortedScores.slice(0, 10));
+      setOriginalQuestion(originalQuestion);
+      setCorrectAnswer(correctLetter + ": " + correctAnswer);
       setPage("player standings");
     }
 
@@ -106,6 +127,7 @@ export default function Home() {
     socket.on("question", onQuestion);
     socket.on("show-standings", onShowStandings);
     socket.on("show-end-page", () => setPage("end page"));
+    socket.on("question-countdown", (count) => setQuestionCountdown(count));
 
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
@@ -118,6 +140,10 @@ export default function Home() {
 
   function onStartClicked() {
     setGameStarted(true);
+    socket.emit("next-question", roomCode);
+  }
+  function onNextClicked() {
+    setLoadingNextQuestion(true);
     socket.emit("next-question", roomCode);
   }
 
@@ -158,23 +184,42 @@ export default function Home() {
     <div>...{countdown}...</div>
   ) : page === "question" ? (
     <div>
+      <h3>{progress}</h3>
       <h1>The question is...</h1>
       <h2>{currQuestion}</h2>
+      <h3>Remaining Time: {questionCountdown}</h3>
     </div>
   ) : page === "player standings" ? (
     <div>
+      <h1>Question: {originalQuestion}</h1>
+      <h2>The correct answer was:</h2>
+      <h1> {correctAnswer}</h1>
       <h1>Player Standings...</h1>
       <p>{JSON.stringify(answerDistributionData)}</p>
       <p>{topTenNames}</p>
       <p>{topTenScores}</p>
-      <button onClick={onStartClicked}>Next!</button>
+
+      {loadingNextQuestion === false ? (
+        <button onClick={onNextClicked}>Next!</button>
+      ) : (
+        <div>...Loading...</div>
+      )}
     </div>
   ) : page === "end page" ? (
     <div>
-      <h1>Top 3: </h1>
-      <h2>1st Place: {topTenNames.length >= 1 && topTenNames[0]}</h2>
-      <h2>2nd Place: {topTenNames.length >= 2 && topTenNames[1]}</h2>
-      <h2>3rd Place: {topTenNames.length >= 3 && topTenNames[2]}</h2>
+      <h1>Congrats to the Top 3!</h1>
+      <h2>
+        1st Place: {topTenNames.length >= 1 && topTenNames[0]} - - -{" "}
+        {topTenScores.length >= 1 && topTenScores[0]}
+      </h2>
+      <h2>
+        2nd Place: {topTenNames.length >= 2 && topTenNames[1]} - - -{" "}
+        {topTenScores.length >= 2 && topTenScores[1]}
+      </h2>
+      <h2>
+        3rd Place: {topTenNames.length >= 3 && topTenNames[2]} - - -{" "}
+        {topTenScores.length >= 3 && topTenScores[2]}
+      </h2>
     </div>
   ) : (
     <div>Error!</div>

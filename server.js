@@ -9,7 +9,7 @@ const port = 3000;
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
-const QUESTION_TIME = 3
+const QUESTION_TIME = 10
 const POINTS_POSSIBLE = 1000
 
 let gamesStates = {
@@ -105,10 +105,14 @@ app.prepare().then(() => {
     })
 
     socket.on("next-question", (room) => {
-      if (gamesStates[room]["question_number"] >= gamesStates[room]["questions"].length) {
+      const totalNumQuestions = gamesStates[room]["questions"].length
+      const currNumQuestion = gamesStates[room]["question_number"]
+
+      if (currNumQuestion >= totalNumQuestions) {
         io.to(room).emit("show-end-page")
         return
       }
+
       gamesStates[room]["answer_distribution"] = {
         "A": 0,
         "B": 0,
@@ -142,7 +146,7 @@ app.prepare().then(() => {
 
           question_data["question"] = curr_question_data["question"]
 
-          io.to(room).emit("question", question_data)
+          io.to(room).emit("question", question_data, currNumQuestion, totalNumQuestions)
 
           gamesStates[room]["curr_question_start_time"] = Date.now()
 
@@ -173,7 +177,11 @@ app.prepare().then(() => {
               // 4. Create the array of scores sorted in increasing order
               const sortedScores = players.map(player => player.score);
 
-              io.to(room).emit("show-standings", gamesStates[room]["answer_distribution"], sortedNames, sortedScores)
+              const correctLetter = gamesStates[room]["correct_answer_letter"]
+              const correctAnswer = question_data[correctLetter]
+              const originalQuestion = question_data["question"]
+              const answerDistribution = gamesStates[room]["answer_distribution"]
+              io.to(room).emit("show-standings", answerDistribution, sortedNames, sortedScores, correctLetter, correctAnswer, originalQuestion)
               gamesStates[room]["question_number"] += 1
             }
 

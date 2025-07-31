@@ -46,6 +46,10 @@ export default function Home() {
   const [currRanking, setCurrRanking] = useState(0);
   const [currScore, setCurrScore] = useState(0);
 
+  const [currChoiceLetter, setCurrChoiceLetter] = useState("N/A");
+
+  const [currChoiceValue, setCurrChoiceValue] = useState("N/A");
+
   useEffect(() => {
     if (socket.connected) {
       onConnect();
@@ -79,7 +83,13 @@ export default function Home() {
       setCountdown(count);
     }
 
-    function onQuestion(question_data: QuestionData) {
+    function onQuestion(
+      question_data: QuestionData,
+      currNumQuestion: number,
+      totalNumQuestions: number
+    ) {
+      setCurrChoiceValue("N/A");
+      setCurrChoiceLetter("N/A");
       setCurrAnswerChoices([
         question_data["A"],
         question_data["B"],
@@ -90,10 +100,17 @@ export default function Home() {
       setPage("question");
     }
 
+    function onPlayerAnswered() {
+      setPage("waiting");
+    }
+
     function onShowStandings(
       answerDistribution: AnswerDistribution,
       sortedNames: string[],
-      sortedScores: number[]
+      sortedScores: number[],
+      correctLetter: string,
+      correctAnswer: string,
+      originalQuestion: string
     ) {
       const player_index = sortedNames.indexOf(username);
       setCurrRanking(player_index + 1);
@@ -104,7 +121,7 @@ export default function Home() {
     socket.on("player-joined-failed", onPlayerJoinedFailed);
     socket.on("countdown", onCountdown);
     socket.on("question", onQuestion);
-    socket.on("player-answered", () => setPage("waiting"));
+    socket.on("player-answered", onPlayerAnswered);
     socket.on("show-standings", onShowStandings);
     socket.on("show-end-page", () => setPage("end page"));
 
@@ -157,6 +174,9 @@ export default function Home() {
         <button
           key={ANSWER_CHOICES[index]}
           onClick={() => {
+            setCurrChoiceLetter(ANSWER_CHOICES[index]);
+            setCurrChoiceValue(answerChoice);
+
             // emits "player-answer" with room code, username, and choice
             socket.emit(
               "player-answer",
@@ -172,14 +192,24 @@ export default function Home() {
     </div>
   ) : page === "player standings" ? (
     <div>
+      <h2>You selected: </h2>
+      <h3>
+        {currChoiceLetter}: {currChoiceValue}
+      </h3>
       <h1>Your ranking is: #{currRanking}</h1>
       <h2>With a score of {currScore}</h2>
     </div>
   ) : page === "waiting" ? (
-    <div>Waiting...</div>
+    <div>
+      <h1>Waiting...</h1>
+      <h2>You selected: </h2>
+      <h3>
+        {currChoiceLetter}: {currChoiceValue}
+      </h3>
+    </div>
   ) : page === "end page" ? (
     <div>
-      <h1>Your ranking is: #{currRanking}</h1>
+      <h1>Your final ranking is: #{currRanking}</h1>
       <h2>With a score of {currScore}</h2>
     </div>
   ) : (
