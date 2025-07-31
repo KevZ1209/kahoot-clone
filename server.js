@@ -32,10 +32,6 @@ function calculateScore(elapsed_milliseconds) {
   return Math.round((1 - (elapsed_seconds / QUESTION_TIME) / 2) * POINTS_POSSIBLE)
 }
 
-let countdown1_interval;
-
-let countdown2_interval;
-
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
@@ -120,12 +116,12 @@ app.prepare().then(() => {
         "D": 0
       }
       let countdown_seconds = 3
-      countdown1_interval = setInterval(() => {
+      gamesStates[room]["countdown1"] = setInterval(() => {
         if (countdown_seconds > 0) {
           io.to(room).emit("countdown", countdown_seconds);
           countdown_seconds--;
         } else {
-          clearInterval(countdown1_interval);
+          clearInterval(gamesStates[room]["countdown1"]);
           const curr_question_num = gamesStates[room]["question_number"]
           const curr_question_data = gamesStates[room]["questions"][curr_question_num]
 
@@ -151,13 +147,13 @@ app.prepare().then(() => {
           gamesStates[room]["curr_question_start_time"] = Date.now()
 
           let countdown2_seconds = QUESTION_TIME;
-          countdown2_interval = setInterval(() => {
+          gamesStates[room]["countdown2"] = setInterval(() => {
             if (countdown2_seconds > 0) {
               io.to(room).emit("question-countdown", countdown2_seconds)
               countdown2_seconds--;
             }
             else {
-              clearInterval(countdown2_interval);
+              clearInterval(gamesStates[room]["countdown2"]);
 
               // 1. Convert the object into an array of player objects
               // Each player object will have 'name', 'score', and 'numCorrect' properties
@@ -206,13 +202,12 @@ app.prepare().then(() => {
 
     socket.on("delete-room", (roomCode) => {
       console.log("Deleting room with code: " + roomCode)
+      clearInterval(gamesStates[roomCode]["countdown1"]);
+      clearInterval(gamesStates[roomCode]["countdown2"]);
       delete gamesStates[roomCode]
       console.log(gamesStates)
     })
   });
-
-
-
 
   httpServer
     .once("error", (err) => {

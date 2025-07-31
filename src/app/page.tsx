@@ -28,6 +28,12 @@ function shuffleArray(array: number[]) {
   return array;
 }
 
+let prevScore = 0;
+let currScore = 0;
+let currChoiceLetter = "";
+let currCorrectChoice = "";
+let currChoiceValue = "";
+
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
@@ -44,11 +50,13 @@ export default function Home() {
   const [currAnswerChoices, setCurrAnswerChoices] = useState<Array<string>>([]);
 
   const [currRanking, setCurrRanking] = useState(0);
-  const [currScore, setCurrScore] = useState(0);
+  // const [currScore, setCurrScore] = useState(0);
 
-  const [currChoiceLetter, setCurrChoiceLetter] = useState("N/A");
+  // const [currChoiceValue, setCurrChoiceValue] = useState("N/A");
 
-  const [currChoiceValue, setCurrChoiceValue] = useState("N/A");
+  // const [currCorrectChoice, setCurrCorrectChoice] = useState("");
+
+  // const [prevScore, setPrevScore] = useState(0);
 
   useEffect(() => {
     if (socket.connected) {
@@ -92,15 +100,15 @@ export default function Home() {
       currNumQuestion: number,
       totalNumQuestions: number
     ) {
-      setCurrChoiceValue("N/A");
-      setCurrChoiceLetter("N/A");
+      currChoiceValue = "N/A";
+      currChoiceLetter = "N/A";
       setCurrAnswerChoices([
         question_data["A"],
         question_data["B"],
         question_data["C"],
         question_data["D"],
       ]);
-
+      prevScore = currScore;
       setPage("question");
     }
 
@@ -118,7 +126,8 @@ export default function Home() {
     ) {
       const player_index = sortedNames.indexOf(username.trim());
       setCurrRanking(player_index + 1);
-      setCurrScore(sortedScores[player_index]);
+      currScore = sortedScores[player_index];
+      currCorrectChoice = correctLetter;
       setPage("player standings");
     }
 
@@ -205,13 +214,13 @@ export default function Home() {
       {currAnswerChoices.map((answerChoice, index) => (
         <button
           key={ANSWER_CHOICES[index]}
-          className="flex items-center justify-center md:py-20 py-4 text-white
+          className="flex items-center justify-center md:py-20 py-4
                 rounded-md
                 text-4xl border-1 hover:bg-blue-500
                 "
           onClick={() => {
-            setCurrChoiceLetter(ANSWER_CHOICES[index]);
-            setCurrChoiceValue(answerChoice);
+            currChoiceLetter = ANSWER_CHOICES[index];
+            currChoiceValue = answerChoice;
 
             // emits "player-answer" with room code, username, and choice
             socket.emit(
@@ -228,6 +237,19 @@ export default function Home() {
     </div>
   ) : page === "player standings" ? (
     <div className="text-xl mt-10 text-center">
+      {currChoiceLetter === currCorrectChoice ? (
+        <div>
+          <h1 className="text-2xl text-green-500">Correct!</h1>
+          <h2 className="text-3xl text-green-500">
+            +{currScore - prevScore} points
+          </h2>
+        </div>
+      ) : (
+        <div>
+          <h1 className="text-2xl text-red-500">Incorrect!</h1>
+          <h2 className="text-3xl text-red-500">+0 points</h2>
+        </div>
+      )}
       <h2 className="text-2xl">You selected: </h2>
       <h3>
         {currChoiceLetter}: {currChoiceValue}
