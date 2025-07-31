@@ -5,9 +5,13 @@ import { socket } from "../socket";
 
 interface QuestionData {
   question: string;
-  correctAnswer: string;
-  incorrectAnswers: string[];
+  A: string;
+  B: string;
+  C: string;
+  D: string;
 }
+
+const ANSWER_CHOICES = ["A", "B", "C", "D"];
 
 function shuffleArray(array: number[]) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -24,16 +28,12 @@ export default function Home() {
   const [roomCode, setRoomCode] = useState("");
   const [username, setUsername] = useState("");
 
-  // "join" -> "waiting room" -> repeat("countdown, question, standings") -> "podium"
+  // "join" -> "waiting room" -> repeat("countdown, question, player standings") -> "podium"
   const [page, setPage] = useState("join");
 
   const [countdown, setCountdown] = useState(0);
 
-  const [currChoice, setCurrChoice] = useState();
-
   const [currAnswerChoices, setCurrAnswerChoices] = useState<Array<string>>([]);
-
-  const [answerOrder, setAnswerOrder] = useState<Array<number>>([]);
 
   useEffect(() => {
     if (socket.connected) {
@@ -72,15 +72,13 @@ export default function Home() {
       setCountdown(count);
     }
 
-    function onQuestion(curr_question_data: QuestionData) {
-      // only show answer choices
-      const correctAnswer = curr_question_data["correctAnswer"];
-      const incorrectAnswers = curr_question_data["incorrectAnswers"];
-
-      // correct answer is always choice A
-      setCurrAnswerChoices([correctAnswer, ...incorrectAnswers]);
-
-      setAnswerOrder(shuffleArray([0, 1, 2, 3]));
+    function onQuestion(question_data: QuestionData) {
+      setCurrAnswerChoices([
+        question_data["A"],
+        question_data["B"],
+        question_data["C"],
+        question_data["D"],
+      ]);
 
       setPage("question");
     }
@@ -89,6 +87,7 @@ export default function Home() {
     socket.on("player-joined", onPlayerJoined);
     socket.on("countdown", onCountdown);
     socket.on("question", onQuestion);
+    socket.on("player-answered", () => setPage("waiting"));
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
@@ -132,23 +131,29 @@ export default function Home() {
     <div>...{countdown}...</div>
   ) : page === "question" ? (
     <div>
-      {answerOrder.map((answerChoice) => (
+      {currAnswerChoices.map((answerChoice, index) => (
         <button
-          key={answerChoice}
+          key={ANSWER_CHOICES[index]}
           onClick={() => {
-            // emits "player-answer" with room code, username, and whether the answer was correct or not
+            // emits "player-answer" with room code, username, and choice
             socket.emit(
               "player-answer",
               roomCode,
               username.trim(),
-              answerChoice === 0
+              ANSWER_CHOICES[index]
             );
           }}
         >
-          {currAnswerChoices[answerChoice]}
+          {answerChoice}
         </button>
       ))}
     </div>
+  ) : page === "player standings" ? (
+    <div>
+      <h1>Your ranking is: 69</h1>
+    </div>
+  ) : page === "waiting" ? (
+    <div>Waiting...</div>
   ) : (
     <div>Error!</div>
   );

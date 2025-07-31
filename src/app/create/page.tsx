@@ -5,8 +5,10 @@ import { socket } from "../../socket";
 
 interface QuestionData {
   question: string;
-  correctAnswer: string;
-  incorrectAnswers: string[];
+  A: string;
+  B: string;
+  C: string;
+  D: string;
 }
 
 export default function Home() {

@@ -13,6 +13,14 @@ let gamesStates = {
 
 }
 
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1)); // Pick a random index from 0 to i
+    [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+  }
+  return array;
+}
+
 let countdown1_interval;
 
 let countdown2_interval;
@@ -97,7 +105,25 @@ app.prepare().then(() => {
           const curr_question_data = gamesStates[room]["questions"][curr_question_num]
 
           // TODO: obfuscate so the correct answer doesn't show in the HTML
-          io.to(room).emit("question", curr_question_data)
+
+          // send over something in the format:
+          // { A: "Answer 1", B: "Answer 2", C: "Answer 3", D: "Answer 4"}
+          const answer_letters = shuffleArray(["A", "B", "C", "D"])
+          const question_data = {}
+          const incorrect_answers = curr_question_data["incorrectAnswers"]
+          const correct_answer = curr_question_data["correctAnswer"]
+          const answer_vals = [correct_answer, ...incorrect_answers]
+
+          for (let i = 0; i < 4; i++) {
+            if (i === 0) {
+              gamesStates[room]["correct_answer_letter"] = answer_letters[i]
+            }
+            question_data[answer_letters[i]] = answer_vals[i]
+          }
+
+          question_data["question"] = curr_question_data["question"]
+
+          io.to(room).emit("question", question_data)
 
           let countdown2_seconds = 20;
           countdown2_interval = setInterval(() => {
@@ -116,8 +142,9 @@ app.prepare().then(() => {
       }, 1000)
     })
 
-    socket.on("player-answer", (roomCode, username, correct) => {
-      if (correct) {
+    socket.on("player-answer", (roomCode, username, choice) => {
+      socket.emit("player-answered")
+      if (choice === gamesStates[roomCode]["correct_answer_letter"]) {
         console.log(username + " got it correct!")
         gamesStates[roomCode]["players"][username]["score"] += 1000;
         gamesStates[roomCode]["players"][username]["numCorrect"] += 1;
