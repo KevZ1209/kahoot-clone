@@ -18,6 +18,8 @@ interface AnswerDistribution {
   D: number;
 }
 
+let gameCodeGlobal = "";
+
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
@@ -40,7 +42,13 @@ export default function Home() {
 
   const [currQuestion, setCurrQuestion] = useState("");
 
-  const [answerDistributionData, setAnswerDistributionData] = useState({});
+  const [answerDistributionData, setAnswerDistributionData] =
+    useState<AnswerDistribution>({
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+    });
 
   const [topTenNames, setTopTenNames] = useState<Array<string>>([]);
 
@@ -72,6 +80,7 @@ export default function Home() {
 
     function onCreateGame(roomCode: string) {
       setRoomCode(roomCode);
+      gameCodeGlobal = roomCode;
       setPage("waiting room");
     }
 
@@ -120,13 +129,18 @@ export default function Home() {
       setPage("player standings");
     }
 
+    function onShowEndPage() {
+      setPage("end page");
+      socket.emit("delete-room", gameCodeGlobal);
+    }
+
     socket.on("game-created", onCreateGame);
     socket.on("player-joined", onPlayerJoined);
     socket.on("player-left", onPlayerLeft);
     socket.on("countdown", onCountdown);
     socket.on("question", onQuestion);
     socket.on("show-standings", onShowStandings);
-    socket.on("show-end-page", () => setPage("end page"));
+    socket.on("show-end-page", onShowEndPage);
     socket.on("question-countdown", (count) => setQuestionCountdown(count));
 
     // runs when connected/disconnected to server.js
@@ -165,59 +179,114 @@ export default function Home() {
       </button>
     </div>
   ) : page === "waiting room" ? (
-    <div>
-      <h1 className="text-3xl">Waiting for Players...</h1>
-      <h2 className="text-2xl">Join Code: {roomCode}</h2>
-      {playersList.map((username, index) => (
-        <div key={index}>{username}</div>
-      ))}
+    <div className="text-xl mt-10 text-center">
+      <h1 className="text-3xl mb-4">Waiting for Players...</h1>
+
+      <h2 className="text-5xl mb-4">
+        Join Code: <span className="font-bold text-6xl">{roomCode}</span>
+      </h2>
+
+      <h2 className="text-4xl mb-4">Players</h2>
+
+      <div className="flex flex-wrap gap-4 max-w-2xl justify-center mx-auto mb-4 text-2xl">
+        {playersList.length > 0 ? (
+          playersList.map((username, index) => (
+            <div
+              key={index}
+              className="border-1 border-gray-500 py-2 rounded-md w-50 overflow-x-clip"
+            >
+              {username}
+            </div>
+          ))
+        ) : (
+          <div>Waiting...</div>
+        )}
+      </div>
 
       {gameStarted === false ? (
-        <button className="border-2" onClick={onStartClicked}>
+        <button
+          className="text-lg mt-4 p-3 rounded-md border-1 hover:opacity-75"
+          onClick={onStartClicked}
+        >
           Start Game!
         </button>
       ) : (
-        <div>...Starting game...</div>
+        <div className="inline text-lg mt-4 p-3 rounded-md border-1 hover:opacity-75">
+          ...Starting game...
+        </div>
       )}
     </div>
   ) : page === "countdown" ? (
-    <div>...{countdown}...</div>
+    <div className="text-center text-3xl mt-20">...{countdown}...</div>
   ) : page === "question" ? (
-    <div>
-      <h3>{progress}</h3>
-      <h1>The question is...</h1>
-      <h2>{currQuestion}</h2>
-      <h3>Remaining Time: {questionCountdown}</h3>
+    <div className="text-xl mt-10 text-center ">
+      <h3 className="text-2xl mb-8">{progress}</h3>
+      <h1 className="text-2xl">The question is...</h1>
+      <h2 className="text-5xl mb-16">{currQuestion}</h2>
+      <h3 className="text-3xl">Remaining Time: {questionCountdown}</h3>
     </div>
   ) : page === "player standings" ? (
-    <div>
-      <h1>Question: {originalQuestion}</h1>
-      <h2>The correct answer was:</h2>
+    <div className="text-2xl mt-10 text-center">
+      <h1>
+        <span className="font-bold">Question:</span> {originalQuestion}
+      </h1>
+      <h2 className="font-bold">Answer:</h2>
       <h1> {correctAnswer}</h1>
-      <h1>Player Standings...</h1>
-      <p>{JSON.stringify(answerDistributionData)}</p>
-      <p>{topTenNames}</p>
-      <p>{topTenScores}</p>
+      <br></br>
+      <h1 className="font-bold text-3xl">Answer Distributions...</h1>
+      <h2 className="text-2xl">
+        <span className="font-bold text-3xl">A:</span>{" "}
+        {answerDistributionData["A"]} response(s)
+      </h2>
+      <h2>
+        <span className="font-bold text-3xl">B:</span>{" "}
+        {answerDistributionData["B"]} response(s)
+      </h2>
+      <h2>
+        {" "}
+        <span className="font-bold text-3xl">C:</span>{" "}
+        {answerDistributionData["C"]} response(s)
+      </h2>
+      <h2>
+        {" "}
+        <span className="font-bold text-3xl">D:</span>{" "}
+        {answerDistributionData["D"]} response(s)
+      </h2>
 
+      <h1 className="font-bold text-3xl mt-8">Player Standings (Top 5):</h1>
+      {topTenNames.slice(0, 5).map((name, index) => (
+        <h3 className="text-2xl" key={index}>
+          {index + 1}. {name} ---{" "}
+          <span className="font-bold">{topTenScores[index]}</span>
+        </h3>
+      ))}
       {loadingNextQuestion === false ? (
-        <button onClick={onNextClicked}>Next!</button>
+        <button
+          onClick={onNextClicked}
+          className="text-lg mt-4 p-3 rounded-md border-1 hover:opacity-75"
+        >
+          Next!
+        </button>
       ) : (
         <div>...Loading...</div>
       )}
     </div>
   ) : page === "end page" ? (
-    <div>
-      <h1>Congrats to the Top 3!</h1>
-      <h2>
-        1st Place: {topTenNames.length >= 1 && topTenNames[0]} - - -{" "}
+    // TODO: tell server to delete game state!
+    <div className="text-4xl mt-10 text-center">
+      <h2 className="text-6xl mb-8">
+        <span className="font-bold">1st Place: </span>
+        {topTenNames.length >= 1 && topTenNames[0]} ---{" "}
         {topTenScores.length >= 1 && topTenScores[0]}
       </h2>
-      <h2>
-        2nd Place: {topTenNames.length >= 2 && topTenNames[1]} - - -{" "}
+      <h2 className="text-[3.5rem] mb-8">
+        <span className="font-bold">2nd Place: </span>
+        {topTenNames.length >= 2 && topTenNames[1]} ---{" "}
         {topTenScores.length >= 2 && topTenScores[1]}
       </h2>
-      <h2>
-        3rd Place: {topTenNames.length >= 3 && topTenNames[2]} - - -{" "}
+      <h2 className="text-5xl mb-8">
+        <span className="font-bold">3rd Place: </span>
+        {topTenNames.length >= 3 && topTenNames[2]} ---{" "}
         {topTenScores.length >= 3 && topTenScores[2]}
       </h2>
     </div>

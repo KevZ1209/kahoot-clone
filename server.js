@@ -9,7 +9,7 @@ const port = 3000;
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
-const QUESTION_TIME = 10
+const QUESTION_TIME = 15
 const POINTS_POSSIBLE = 1000
 
 let gamesStates = {
@@ -203,7 +203,15 @@ app.prepare().then(() => {
       }
       console.log(gamesStates);
     })
+
+    socket.on("delete-room", (roomCode) => {
+      console.log("Deleting room with code: " + roomCode)
+      delete gamesStates[roomCode]
+      console.log(gamesStates)
+    })
   });
+
+
 
 
   httpServer

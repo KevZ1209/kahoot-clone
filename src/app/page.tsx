@@ -70,6 +70,10 @@ export default function Home() {
       setTransport("N/A");
     }
 
+    function onPlayerJoined() {
+      setPage("waiting room");
+    }
+
     function onPlayerJoinedFailed(usernameMismatch: boolean) {
       if (usernameMismatch) {
         setStatusText("That username has been taken already!");
@@ -112,13 +116,14 @@ export default function Home() {
       correctAnswer: string,
       originalQuestion: string
     ) {
-      const player_index = sortedNames.indexOf(username);
+      const player_index = sortedNames.indexOf(username.trim());
       setCurrRanking(player_index + 1);
       setCurrScore(sortedScores[player_index]);
       setPage("player standings");
     }
 
     socket.on("player-joined-failed", onPlayerJoinedFailed);
+    socket.on("player-joined", onPlayerJoined);
     socket.on("countdown", onCountdown);
     socket.on("question", onQuestion);
     socket.on("player-answered", onPlayerAnswered);
@@ -136,43 +141,74 @@ export default function Home() {
   }, [username]);
 
   function joinGame() {
+    if (username.trim().length < 3) {
+      setStatusText("Username needs to be at least 3 characters");
+      return;
+    }
     socket.emit("join-game", roomCode, username.trim());
-    setPage("waiting room");
   }
 
   return page === "join" ? (
     <div>
-      <h1 className="text-2xl">Play a Kahoot-ish Game</h1>
-      <p>{username}</p>
-      <p>{roomCode}</p>
       <div className={isConnected ? "text-green-500" : "text-red-500"}>
-        <p>Status: {isConnected ? "connected" : "disconnected"}</p>
-        <p>Transport: {transport}</p>
+        <p>
+          Status:{" "}
+          {isConnected && transport === "websocket"
+            ? "connected"
+            : "disconnected"}
+        </p>
       </div>
-      <br></br>
-      <input
-        placeholder="enter code"
-        onChange={(e) => setRoomCode(e.target.value)}
-        // single source of truth
-        value={roomCode}
-      ></input>
-      <input
-        placeholder="enter your name"
-        onChange={(e) => setUsername(e.target.value)}
-        value={username}
-      ></input>
-      <div>{statusText}</div>
-      <button onClick={joinGame}>Join Game!</button>
+      <div className="text-center">
+        <h1 className="text-2xl">Join a QuizHoot!</h1>
+        <br></br>
+        <input
+          placeholder="enter code"
+          maxLength={4}
+          onChange={(e) => setRoomCode(e.target.value)}
+          className="text-xl border-1 rounded-md p-2 mb-4"
+          // single source of truth
+          value={roomCode}
+        ></input>
+        <br></br>
+        <input
+          placeholder="enter your name"
+          maxLength={20}
+          onChange={(e) => setUsername(e.target.value)}
+          value={username}
+          className="text-xl border-1 rounded-md p-2"
+        ></input>
+        <div className="text-red-500">{statusText}</div>
+        <button
+          onClick={joinGame}
+          className="text-lg mt-4  p-3 rounded-md border-1 hover:opacity-75"
+        >
+          Join Game!
+        </button>
+      </div>
     </div>
   ) : page === "waiting room" ? (
-    <div>You have joined the game! Please wait for the game to start!</div>
+    <div className="text-xl mt-10 text-center">
+      <h1>
+        Hello <span className="font-bold text-2xl">{username.trim()}</span>!
+      </h1>
+      <h1>
+        You have joined game{" "}
+        <span className="font-bold text-2xl">{roomCode}</span>
+      </h1>
+
+      <h1>Waiting for the game to start...</h1>
+    </div>
   ) : page === "countdown" ? (
-    <div>...{countdown}...</div>
+    <div className="text-center text-3xl mt-20">...{countdown}...</div>
   ) : page === "question" ? (
-    <div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto h-full mt-4">
       {currAnswerChoices.map((answerChoice, index) => (
         <button
           key={ANSWER_CHOICES[index]}
+          className="flex items-center justify-center md:py-20 py-4 text-white
+                rounded-md
+                text-4xl border-1 hover:bg-blue-500
+                "
           onClick={() => {
             setCurrChoiceLetter(ANSWER_CHOICES[index]);
             setCurrChoiceValue(answerChoice);
@@ -186,31 +222,40 @@ export default function Home() {
             );
           }}
         >
-          {answerChoice}
+          {ANSWER_CHOICES[index]}: {answerChoice}
         </button>
       ))}
     </div>
   ) : page === "player standings" ? (
-    <div>
-      <h2>You selected: </h2>
+    <div className="text-xl mt-10 text-center">
+      <h2 className="text-2xl">You selected: </h2>
       <h3>
         {currChoiceLetter}: {currChoiceValue}
       </h3>
-      <h1>Your ranking is: #{currRanking}</h1>
-      <h2>With a score of {currScore}</h2>
+      <h1 className="text-lg">
+        Your ranking is:{" "}
+        <span className="font-bold text-2xl">#{currRanking}</span>
+      </h1>
+      <h2 className="text-lg">
+        With a score of <span className="font-bold text-2xl">{currScore}</span>
+      </h2>
     </div>
   ) : page === "waiting" ? (
-    <div>
-      <h1>Waiting...</h1>
+    <div className="text-2xl mt-10 text-center">
+      <h1 className="text-3xl">Waiting...</h1>
       <h2>You selected: </h2>
       <h3>
         {currChoiceLetter}: {currChoiceValue}
       </h3>
     </div>
   ) : page === "end page" ? (
-    <div>
-      <h1>Your final ranking is: #{currRanking}</h1>
-      <h2>With a score of {currScore}</h2>
+    <div className="text-xl mt-10 text-center">
+      <h1 className="text-2xl">
+        Your final ranking is: <span className="font-bold">#{currRanking}</span>
+      </h1>
+      <h2>
+        With a score of: <span className="font-bold">{currScore}</span>
+      </h2>
     </div>
   ) : (
     <div>Error!</div>
