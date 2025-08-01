@@ -78,8 +78,10 @@ export default function Home() {
       setTransport("N/A");
     }
 
-    function onPlayerJoined() {
-      setPage("waiting room");
+    function onPlayerJoined(joined_username: string) {
+      if (username === joined_username) {
+        setPage("waiting room");
+      }
     }
 
     function onPlayerJoinedFailed(usernameMismatch: boolean) {

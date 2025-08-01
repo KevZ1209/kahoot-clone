@@ -133,7 +133,6 @@ export default function Home() {
       setPage("end page");
       socket.emit("delete-room", gameCodeGlobal);
     }
-
     socket.on("game-created", onCreateGame);
     socket.on("player-joined", onPlayerJoined);
     socket.on("player-left", onPlayerLeft);
