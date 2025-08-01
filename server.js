@@ -100,7 +100,12 @@ app.prepare().then(() => {
 
     })
 
+    socket.on("skip-question", (room) => {
+      gamesStates[room]["skip"] = true
+    })
+
     socket.on("next-question", (room) => {
+      gamesStates[room]["skip"] = false
       const totalNumQuestions = gamesStates[room]["questions"].length
       const currNumQuestion = gamesStates[room]["question_number"]
 
@@ -148,7 +153,7 @@ app.prepare().then(() => {
 
           let countdown2_seconds = QUESTION_TIME;
           gamesStates[room]["countdown2"] = setInterval(() => {
-            if (countdown2_seconds > 0) {
+            if (countdown2_seconds > 0 && gamesStates[room]["skip"] === false) {
               io.to(room).emit("question-countdown", countdown2_seconds)
               countdown2_seconds--;
             }
@@ -174,10 +179,10 @@ app.prepare().then(() => {
               const sortedScores = players.map(player => player.score);
 
               const correctLetter = gamesStates[room]["correct_answer_letter"]
-              const correctAnswer = question_data[correctLetter]
+              const answerData = [question_data["A"], question_data["B"], question_data["C"], question_data["D"]]
               const originalQuestion = question_data["question"]
               const answerDistribution = gamesStates[room]["answer_distribution"]
-              io.to(room).emit("show-standings", answerDistribution, sortedNames, sortedScores, correctLetter, correctAnswer, originalQuestion)
+              io.to(room).emit("show-standings", answerDistribution, sortedNames, sortedScores, correctLetter, answerData, originalQuestion)
               gamesStates[room]["question_number"] += 1
             }
 
@@ -187,7 +192,8 @@ app.prepare().then(() => {
     })
 
     socket.on("player-answer", (roomCode, username, choice) => {
-      socket.emit("player-answered")
+      io.to(roomCode).emit("player-answered", username)
+
       gamesStates[roomCode]["answer_distribution"][choice] += 1
       if (choice === gamesStates[roomCode]["correct_answer_letter"]) {
         console.log(username + " got it correct!")

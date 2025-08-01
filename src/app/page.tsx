@@ -33,6 +33,7 @@ let currScore = 0;
 let currChoiceLetter = "";
 let currCorrectChoice = "";
 let currChoiceValue = "";
+let currUserName = "";
 
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
@@ -79,7 +80,7 @@ export default function Home() {
     }
 
     function onPlayerJoined(joined_username: string) {
-      if (username === joined_username) {
+      if (currUserName === joined_username) {
         setPage("waiting room");
       }
     }
@@ -114,8 +115,10 @@ export default function Home() {
       setPage("question");
     }
 
-    function onPlayerAnswered() {
-      setPage("waiting");
+    function onPlayerAnswered(answered_username: string) {
+      if (currUserName === answered_username) {
+        setPage("waiting");
+      }
     }
 
     function onShowStandings(
@@ -123,10 +126,10 @@ export default function Home() {
       sortedNames: string[],
       sortedScores: number[],
       correctLetter: string,
-      correctAnswer: string,
+      answerData: string[],
       originalQuestion: string
     ) {
-      const player_index = sortedNames.indexOf(username.trim());
+      const player_index = sortedNames.indexOf(currUserName);
       setCurrRanking(player_index + 1);
       currScore = sortedScores[player_index];
       currCorrectChoice = correctLetter;
@@ -149,14 +152,15 @@ export default function Home() {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
     };
-  }, [username]);
+  }, []);
 
   function joinGame() {
     if (username.trim().length < 3) {
       setStatusText("Username needs to be at least 3 characters");
       return;
     }
-    socket.emit("join-game", roomCode, username.trim());
+    currUserName = username.trim();
+    socket.emit("join-game", roomCode, currUserName);
   }
 
   return page === "join" ? (
@@ -200,7 +204,7 @@ export default function Home() {
   ) : page === "waiting room" ? (
     <div className="text-xl mt-10 text-center">
       <h1>
-        Hello <span className="font-bold text-2xl">{username.trim()}</span>!
+        Hello <span className="font-bold text-2xl">{currUserName}</span>!
       </h1>
       <h1>
         You have joined game{" "}
@@ -228,7 +232,7 @@ export default function Home() {
             socket.emit(
               "player-answer",
               roomCode,
-              username.trim(),
+              currUserName,
               ANSWER_CHOICES[index]
             );
           }}

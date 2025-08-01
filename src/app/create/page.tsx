@@ -18,6 +18,8 @@ interface AnswerDistribution {
   D: number;
 }
 
+const ANSWER_CHOICES = ["A", "B", "C", "D"];
+
 let gameCodeGlobal = "";
 
 export default function Home() {
@@ -25,6 +27,7 @@ export default function Home() {
   const [transport, setTransport] = useState("N/A");
   const [gameStarted, setGameStarted] = useState(false);
   const [loadingNextQuestion, setLoadingNextQuestion] = useState(false);
+  const [loadingStandings, setLoadingStandings] = useState(false);
 
   // example: [{"question":"What is 2 + 2","correctAnswer":"4","incorrectAnswers":["3","2","1"]},{"question":"Which is a song by Ariana Grande","correctAnswer":"Bye","incorrectAnswers":["Hi","gang gang","integem"]}]
   const [gameData, setGameData] = useState("");
@@ -35,6 +38,8 @@ export default function Home() {
   const [roomCode, setRoomCode] = useState("");
 
   const [playersList, setPlayersList] = useState<Array<string>>([]);
+  const [numPlayers, setNumPlayers] = useState(0);
+  const [numAnswered, setNumAnswered] = useState(0);
 
   const [countdown, setCountdown] = useState(0);
 
@@ -49,6 +54,8 @@ export default function Home() {
       C: 0,
       D: 0,
     });
+
+  const [answerData, setAnswerData] = useState<Array<string>>([]);
 
   const [topTenNames, setTopTenNames] = useState<Array<string>>([]);
 
@@ -87,6 +94,7 @@ export default function Home() {
     function onPlayerJoined(username: string) {
       console.log(username + " joined the room!");
       setPlayersList((prevPlayersList) => [...prevPlayersList, username]);
+      setNumPlayers((prevCount) => prevCount + 1);
     }
 
     function onPlayerLeft(username: string) {
@@ -105,7 +113,9 @@ export default function Home() {
       currNumQuestion: number,
       totalNumQuestions: number
     ) {
+      setNumAnswered(0);
       setLoadingNextQuestion(false);
+      setLoadingStandings(false);
       setCurrQuestion(curr_question_data["question"]);
       setProgress(
         "Question " + (currNumQuestion + 1) + " out of " + totalNumQuestions
@@ -118,14 +128,17 @@ export default function Home() {
       sortedNames: string[],
       sortedScores: number[],
       correctLetter: string,
-      correctAnswer: string,
+      answerData: string[],
       originalQuestion: string
     ) {
       setAnswerDistributionData(answerDistribution);
       setTopTenNames(sortedNames.slice(0, 10));
       setTopTenScores(sortedScores.slice(0, 10));
       setOriginalQuestion(originalQuestion);
-      setCorrectAnswer(correctLetter + ": " + correctAnswer);
+      setCorrectAnswer(
+        correctLetter + ": " + answerData[ANSWER_CHOICES.indexOf(correctLetter)]
+      );
+      setAnswerData(answerData);
       setPage("player standings");
     }
 
@@ -133,6 +146,11 @@ export default function Home() {
       setPage("end page");
       socket.emit("delete-room", gameCodeGlobal);
     }
+
+    function onPlayerAnswered() {
+      setNumAnswered((prev) => prev + 1);
+    }
+
     socket.on("game-created", onCreateGame);
     socket.on("player-joined", onPlayerJoined);
     socket.on("player-left", onPlayerLeft);
@@ -141,6 +159,7 @@ export default function Home() {
     socket.on("show-standings", onShowStandings);
     socket.on("show-end-page", onShowEndPage);
     socket.on("question-countdown", (count) => setQuestionCountdown(count));
+    socket.on("player-answered", onPlayerAnswered);
 
     // runs when connected/disconnected to server.js
     socket.on("connect", onConnect);
@@ -158,6 +177,11 @@ export default function Home() {
   function onNextClicked() {
     setLoadingNextQuestion(true);
     socket.emit("next-question", roomCode);
+  }
+
+  function onSkipQuestion() {
+    setLoadingStandings(true);
+    socket.emit("skip-question", roomCode);
   }
 
   return page === "create" ? (
@@ -185,7 +209,7 @@ export default function Home() {
         Join Code: <span className="font-bold text-6xl">{roomCode}</span>
       </h2>
 
-      <h2 className="text-4xl mb-4">Players</h2>
+      <h2 className="text-4xl mb-4">Players: {numPlayers}</h2>
 
       <div className="flex flex-wrap gap-4 max-w-2xl justify-center mx-auto mb-4 text-2xl">
         {playersList.length > 0 ? (
@@ -223,6 +247,19 @@ export default function Home() {
       <h1 className="text-2xl">The question is...</h1>
       <h2 className="text-5xl mb-16">{currQuestion}</h2>
       <h3 className="text-3xl">Remaining Time: {questionCountdown}</h3>
+      <h3 className="text-3xl">
+        Number of Responses: {numAnswered}/{numPlayers}
+      </h3>
+      {loadingStandings === false ? (
+        <button
+          onClick={onSkipQuestion}
+          className="text-lg mt-4 p-3 rounded-md border-1 hover:opacity-75"
+        >
+          Fast-Forward {">"}
+        </button>
+      ) : (
+        <div>Loading...</div>
+      )}
     </div>
   ) : page === "player standings" ? (
     <div className="text-2xl mt-10 text-center">
@@ -234,21 +271,35 @@ export default function Home() {
       <br></br>
       <h1 className="font-bold text-3xl">Answer Distributions...</h1>
       <h2 className="text-2xl">
-        <span className="font-bold text-3xl">A:</span>{" "}
+        <span className="font-bold text-3xl">A: </span>
+        <span className="text-3xl">
+          {answerData[0]}
+          {" -- "}
+        </span>
         {answerDistributionData["A"]} response(s)
       </h2>
       <h2>
-        <span className="font-bold text-3xl">B:</span>{" "}
+        <span className="font-bold text-3xl">B: </span>
+        <span className="text-3xl">
+          {answerData[1]}
+          {" -- "}
+        </span>
         {answerDistributionData["B"]} response(s)
       </h2>
       <h2>
-        {" "}
-        <span className="font-bold text-3xl">C:</span>{" "}
+        <span className="font-bold text-3xl">C: </span>
+        <span className="text-3xl">
+          {answerData[2]}
+          {" -- "}
+        </span>
         {answerDistributionData["C"]} response(s)
       </h2>
       <h2>
-        {" "}
-        <span className="font-bold text-3xl">D:</span>{" "}
+        <span className="font-bold text-3xl">D: </span>
+        <span className="text-3xl">
+          {answerData[3]}
+          {" -- "}
+        </span>
         {answerDistributionData["D"]} response(s)
       </h2>
 
