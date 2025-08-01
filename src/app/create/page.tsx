@@ -48,7 +48,7 @@ export default function Home() {
 
   const [questionCountdown, setQuestionCountdown] = useState(0);
 
-  const [currQuestion, setCurrQuestion] = useState("");
+  const [currQuestion, setCurrQuestion] = useState<Array<string>>([]);
 
   const [answerDistributionData, setAnswerDistributionData] =
     useState<AnswerDistribution>({
@@ -119,7 +119,8 @@ export default function Home() {
       setNumAnswered(0);
       setLoadingNextQuestion(false);
       setLoadingStandings(false);
-      setCurrQuestion(curr_question_data["question"]);
+      setCurrQuestion(curr_question_data["question"].split("\n"));
+      console.log(curr_question_data["question"].split("\n"));
       setProgress(
         "Question " + (currNumQuestion + 1) + " out of " + totalNumQuestions
       );
@@ -256,10 +257,14 @@ export default function Home() {
   ) : page === "countdown" ? (
     <div className="text-center text-3xl mt-20">...{countdown}...</div>
   ) : page === "question" ? (
-    <div className="text-xl mt-10 text-center ">
+    <div className="text-xl m-10 max-w-6xl mx-auto ">
       <h3 className="text-2xl mb-8">{progress}</h3>
       <h1 className="text-2xl">The question is...</h1>
-      <h2 className="text-5xl mb-16">{currQuestion}</h2>
+      {currQuestion.map((line, i) => (
+        <h2 key={i} className="text-5xl">
+          <pre className="whitespace-pre-wrap">{line}</pre>
+        </h2>
+      ))}
       <h3 className="text-3xl">Remaining Time: {questionCountdown}</h3>
       <h3 className="text-3xl">
         Number of Responses: {numAnswered}/{numPlayers}

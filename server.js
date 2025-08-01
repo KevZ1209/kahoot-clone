@@ -9,7 +9,7 @@ const port = 3000;
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
-const QUESTION_TIME = 15
+const QUESTION_TIME = 30
 const POINTS_POSSIBLE = 1000
 
 let gamesStates = {
