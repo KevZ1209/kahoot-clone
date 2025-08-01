@@ -23,6 +23,9 @@ const ANSWER_CHOICES = ["A", "B", "C", "D"];
 let gameCodeGlobal = "";
 
 export default function Home() {
+  const [title, setTitle] = useState("");
+  const [info, setInfo] = useState("");
+
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
   const [gameStarted, setGameStarted] = useState(false);
@@ -190,7 +193,18 @@ export default function Home() {
         <p>Status: {isConnected ? "connected" : "disconnected"}</p>
         <p>Transport: {transport}</p>
       </div>
-
+      <input
+        placeholder="Game Title"
+        onChange={(e) => setTitle(e.target.value)}
+        value={title}
+      ></input>
+      <br></br>
+      <input
+        placeholder="Additional Info"
+        onChange={(e) => setInfo(e.target.value)}
+        value={info}
+      ></input>
+      <br></br>
       <textarea
         placeholder="enter game data"
         onChange={(e) => setGameData(e.target.value)}
@@ -204,11 +218,11 @@ export default function Home() {
   ) : page === "waiting room" ? (
     <div className="text-xl mt-10 text-center">
       <h1 className="text-3xl mb-4">Waiting for Players...</h1>
-
+      <h1 className="text-3xl mb-4">{info}</h1>
       <h2 className="text-5xl mb-4">
         Join Code: <span className="font-bold text-6xl">{roomCode}</span>
       </h2>
-
+      <h1 className="text-4xl font-bold mb-4">{title}</h1>
       <h2 className="text-4xl mb-4">Players: {numPlayers}</h2>
 
       <div className="flex flex-wrap gap-4 max-w-2xl justify-center mx-auto mb-4 text-2xl">
